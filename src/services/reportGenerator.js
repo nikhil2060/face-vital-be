@@ -55,12 +55,13 @@ function generateReportId() {
 function formatHeartRateData(heartRate) {
   return {
     value: heartRate.value,
-    unit: heartRate.unit,
+    unit: "bpm",
     confidence: heartRate.confidence,
     interpretation: interpretHeartRate(heartRate.value),
     status: getHeartRateStatus(heartRate.value),
     range: {
-      normal: "60-100 bpm",
+      low: 60,
+      high: 100,
       measured: heartRate.value,
     },
   };
@@ -69,12 +70,13 @@ function formatHeartRateData(heartRate) {
 function formatHRVData(hrv) {
   return {
     value: hrv.value,
-    unit: hrv.unit,
+    unit: "ms",
     confidence: hrv.confidence,
     interpretation: interpretHRV(hrv.value),
     status: getHRVStatus(hrv.value),
     range: {
-      normal: "20-200 ms",
+      low: 20,
+      high: 200,
       measured: hrv.value,
     },
   };
@@ -83,12 +85,13 @@ function formatHRVData(hrv) {
 function formatRespiratoryData(respRate) {
   return {
     value: respRate.value,
-    unit: respRate.unit,
+    unit: "breaths/min",
     confidence: respRate.confidence,
     interpretation: interpretRespiratoryRate(respRate.value),
     status: getRespiratoryStatus(respRate.value),
     range: {
-      normal: "12-20 breaths/min",
+      low: 12,
+      high: 20,
       measured: respRate.value,
     },
   };
@@ -96,15 +99,25 @@ function formatRespiratoryData(respRate) {
 
 function formatBloodPressureData(bp) {
   return {
-    systolic: bp.systolic,
-    diastolic: bp.diastolic,
-    unit: bp.unit,
+    value: {
+      systolic: bp.systolic,
+      diastolic: bp.diastolic,
+    },
+    unit: "mmHg",
     confidence: bp.confidence,
     interpretation: interpretBloodPressure(bp),
     status: getBloodPressureStatus(bp),
     range: {
-      normal: "systolic: 90-140, diastolic: 60-90",
-      measured: `${bp.systolic}/${bp.diastolic}`,
+      systolic: {
+        low: 90,
+        high: 140,
+        measured: bp.systolic,
+      },
+      diastolic: {
+        low: 60,
+        high: 90,
+        measured: bp.diastolic,
+      },
     },
   };
 }
@@ -112,20 +125,91 @@ function formatBloodPressureData(bp) {
 function formatStressData(stress) {
   return {
     value: stress.value,
-    scale: "0-100",
+    unit: "score",
     confidence: stress.confidence,
     interpretation: interpretStressLevel(stress.value),
     status: getStressStatus(stress.value),
+    range: {
+      low: 0,
+      high: 100,
+      measured: stress.value,
+    },
     recommendations: generateStressRecommendations(stress.value),
   };
 }
 
 function formatMoodData(mood) {
   return {
-    primary: mood.primary,
+    value: mood.primary,
     confidence: mood.confidence,
     interpretation: interpretMood(mood),
+    status: mood.primary,
+    validStates: ["calm", "stressed", "active", "neutral"],
     suggestions: generateMoodSuggestions(mood),
+  };
+}
+
+function formatSpO2Data(spO2) {
+  if (!spO2 || spO2.value === null) {
+    return {
+      value: null,
+      unit: "%",
+      confidence: "low",
+      interpretation: "Measurement failed",
+      status: "unknown",
+      range: {
+        low: 95,
+        high: 100,
+        measured: null,
+      },
+      perfusionIndex: {
+        value: null,
+        range: {
+          low: 0.5,
+          high: 10,
+          measured: null,
+        },
+      },
+      quality: {
+        value: null,
+        range: {
+          low: 0,
+          high: 1,
+          measured: null,
+        },
+      },
+    };
+  }
+
+  return {
+    value: spO2.value,
+    unit: "%",
+    confidence: spO2.confidence,
+    interpretation: interpretSpO2(spO2.value),
+    status: getSpO2Status(spO2.value),
+    range: {
+      low: 95,
+      high: 100,
+      measured: spO2.value,
+    },
+    perfusionIndex: {
+      value: spO2.perfusionIndex,
+      range: {
+        low: 0.5,
+        high: 10,
+        measured: spO2.perfusionIndex,
+      },
+    },
+    quality: {
+      value: spO2.quality.score,
+      confidence: spO2.quality.confidence,
+      reliability: spO2.quality.reliability,
+      range: {
+        low: 0,
+        high: 1,
+        measured: spO2.quality.score,
+      },
+    },
   };
 }
 
@@ -470,38 +554,6 @@ function identifyLimitations(vitals) {
 }
 
 //************************************SPO2 helper funtions********************************* */
-
-function formatSpO2Data(spO2) {
-  if (!spO2 || spO2.value === null) {
-    return {
-      value: null,
-      unit: "%",
-      confidence: "low",
-      interpretation: "Measurement failed",
-      status: "unknown",
-      perfusionIndex: null,
-      range: {
-        normal: "95-100%",
-        measured: "N/A",
-      },
-      quality: null,
-    };
-  }
-
-  return {
-    value: spO2.value,
-    unit: spO2.unit,
-    confidence: spO2.confidence,
-    interpretation: interpretSpO2(spO2.value),
-    status: getSpO2Status(spO2.value),
-    perfusionIndex: spO2.perfusionIndex,
-    range: {
-      normal: "95-100%",
-      measured: `${spO2.value}%`,
-    },
-    quality: spO2.quality,
-  };
-}
 
 function getSpO2Status(value) {
   if (value === null) return "unknown";
